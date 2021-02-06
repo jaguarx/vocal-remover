@@ -95,6 +95,7 @@ def main():
     p.add_argument('--gpu', '-g', type=int, default=-1)
     p.add_argument('--pretrained_model', '-P', type=str, default='models/baseline.pth')
     p.add_argument('--input', '-i', required=True)
+    p.add_argument('--output', '-o', required=False)
     p.add_argument('--sr', '-r', type=int, default=44100)
     p.add_argument('--n_fft', '-f', type=int, default=2048)
     p.add_argument('--hop_length', '-l', type=int, default=1024)
@@ -117,6 +118,9 @@ def main():
     X, sr = librosa.load(
         args.input, args.sr, False, dtype=np.float32, res_type='kaiser_fast')
     basename = os.path.splitext(os.path.basename(args.input))[0]
+    dirname = os.path.dirname(args.input)
+    if args.output != None and len(args.output) > 0:
+        dirname = args.output
     print('done')
 
     if X.ndim == 1:
@@ -143,20 +147,20 @@ def main():
     y_spec = pred * X_phase
     wave = spec_utils.spectrogram_to_wave(y_spec, hop_length=args.hop_length)
     print('done')
-    sf.write('{}_Instruments.wav'.format(basename), wave.T, sr)
+    sf.write(os.path.join(dirname, '{}_Instruments.wav'.format(basename)), wave.T, sr)
 
     print('inverse stft of vocals...', end=' ')
     v_spec = np.clip(X_mag - pred, 0, np.inf) * X_phase
     wave = spec_utils.spectrogram_to_wave(v_spec, hop_length=args.hop_length)
     print('done')
-    sf.write('{}_Vocals.wav'.format(basename), wave.T, sr)
+    sf.write(os.path.join(dirname, '{}_Vocals.wav'.format(basename)), wave.T, sr)
 
     if args.output_image:
-        with open('{}_Instruments.jpg'.format(basename), mode='wb') as f:
+        with open(os.path.join(dirname, '{}_Instruments.jpg'.format(basename)), mode='wb') as f:
             image = spec_utils.spectrogram_to_image(y_spec)
             _, bin_image = cv2.imencode('.jpg', image)
             bin_image.tofile(f)
-        with open('{}_Vocals.jpg'.format(basename), mode='wb') as f:
+        with open(os.paths.join(dirname, '{}_Vocals.jpg'.format(basename)), mode='wb') as f:
             image = spec_utils.spectrogram_to_image(v_spec)
             _, bin_image = cv2.imencode('.jpg', image)
             bin_image.tofile(f)
